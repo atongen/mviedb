@@ -53,6 +53,10 @@ Usage of dist/mviedb-0.1.0-linux-amd64:
   -v	Print version information and exit
 ```
 
+## api key
+
+Before you can use this app, you will need a themoviedb.org api key from here: https://www.themoviedb.org/settings/api
+
 ## usage
 
 The process is more efficient if you assemble a good list of stop-words for your input files before you begin moving them:
