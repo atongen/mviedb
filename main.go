@@ -462,9 +462,17 @@ func main() {
 	if *printTokensFlag {
 		tokens := []string{}
 		for _, moviePath := range movieList {
-			query := splitSortUniq(GetQuery(moviePath, inDir, stopWords))
-			myQuery, _, _, _ := extractTvSeasonEpisodeFromQuery(strings.Join(query, " "))
-			tokens = append(tokens, strings.Fields(myQuery)...)
+			seen := false
+			for _, e := range manifest {
+				if e.InFile == moviePath || e.OutFile == moviePath {
+					seen = true
+				}
+			}
+			if !seen {
+				query := splitSortUniq(GetQuery(moviePath, inDir, stopWords))
+				myQuery, _, _, _ := extractTvSeasonEpisodeFromQuery(strings.Join(query, " "))
+				tokens = append(tokens, strings.Fields(myQuery)...)
+			}
 		}
 		for _, token := range sortUniq(tokens) {
 			fmt.Println(token)
