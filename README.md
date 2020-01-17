@@ -64,11 +64,12 @@ The process is more efficient if you assemble a good list of stop-words for your
 ```
 $ mviedb \
   -in /media/movies/new \
+  -manifest $HOME/mviedb-manifest.json \
   -add-stop-words additional,stop,words \
   -p
 ```
 
-This will display a list of tokens from the input files that will be used for automatically generating moviedb.org search queries.
+This will display a list of tokens from unprocessed input files that will be used for automatically generating moviedb.org search queries.
 
 Added stop words will be taken into account. Repeat and continue updating `-add-stop-words` (or `-set-stop-words`) until you are happy with the result.
 

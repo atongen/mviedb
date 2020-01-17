@@ -138,12 +138,12 @@ func GetQuery(moviePath, inDir string, stopWords []string) string {
 	return myQuery
 }
 
-func (s *Selector) Handle(i, n int, moviePath, info string) (Media, error) {
+func (s *Selector) Handle(i, n int, moviePath string, common []string, info string) (Media, error) {
 	myQuery := GetQuery(moviePath, s.inDir, s.stopWords)
-	return s.HandleQuery(i, n, moviePath, myQuery, info, 1)
+	return s.HandleQuery(i, n, moviePath, myQuery, false, common, info, 1)
 }
 
-func (s *Selector) HandleQuery(i, n int, moviePath, query, info string, page int) (Media, error) {
+func (s *Selector) HandleQuery(i, n int, moviePath, query string, manual bool, common []string, info string, page int) (Media, error) {
 	fmt.Println(info)
 
 	myQuery, season, episode, year := extractTvSeasonEpisodeFromQuery(strings.TrimSpace(query))
@@ -168,6 +168,9 @@ func (s *Selector) HandleQuery(i, n int, moviePath, query, info string, page int
 	} else if s.isMovieMode() {
 		s.setTvMode(myQuery)
 	} else if s.isTvSeasonEpisodeMode() && (s.seasonNumber != season || s.query != myQuery) {
+		if !manual && len(common) > 0 {
+			myQuery = strings.Join(common, " ")
+		}
 		s.setTvMode(myQuery)
 	}
 
@@ -264,9 +267,9 @@ func (s *Selector) HandleQuery(i, n int, moviePath, query, info string, page int
 			return Movie{}, errors.New("skipped")
 		} else if selection == "p" {
 			if page < totalPages {
-				return s.HandleQuery(i, n, moviePath, query, info, page+1)
+				return s.HandleQuery(i, n, moviePath, query, manual, common, info, page+1)
 			} else {
-				return s.HandleQuery(i, n, moviePath, query, info, 1)
+				return s.HandleQuery(i, n, moviePath, query, manual, common, info, 1)
 			}
 		} else if selection == "h" {
 			if numResults == 1 {
@@ -295,7 +298,7 @@ any other text is new query
 				}
 			} else {
 				// new non-selection query
-				return s.HandleQuery(i, n, moviePath, selection, info, 1)
+				return s.HandleQuery(i, n, moviePath, selection, true, common, info, 1)
 			}
 
 			if iSel >= 1 && iSel <= numResults {
@@ -307,7 +310,7 @@ any other text is new query
 							fmt.Println("Invalid tv season selection:", err)
 							continue
 						}
-						return s.HandleQuery(i, n, moviePath, query, info, page)
+						return s.HandleQuery(i, n, moviePath, query, manual, common, info, page)
 					} else {
 						fmt.Println("Unable to extract season number from query string.")
 						continue
@@ -372,7 +375,7 @@ func isQueryToken(token string, stopWords []string) bool {
 		!(len(token) == 1 && !stringSliceContains(validSingleCharTokens, token))
 }
 
-func buildQuery(movieStr string, stopWords []string) string {
+func buildQueryTokens(movieStr string, stopWords []string) []string {
 	cleaned := queryReg.ReplaceAllString(movieStr, " ")
 	lower := strings.ToLower(cleaned)
 	words := []string{}
@@ -381,7 +384,11 @@ func buildQuery(movieStr string, stopWords []string) string {
 			words = append(words, word)
 		}
 	}
-	return strings.Join(words, " ")
+	return words
+}
+
+func buildQuery(movieStr string, stopWords []string) string {
+	return strings.Join(buildQueryTokens(movieStr, stopWords), " ")
 }
 
 func extractTvSeasonEpisodeFromQuery(query string) (string, int, int, int) {

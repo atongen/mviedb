@@ -6,4 +6,4 @@ mviedb -api-key `cat api_key` \
   -tv-out testdata/tv \
   -manifest testdata/manifest.json \
   -mv \
-  -add-stop-words killers,dimension,internal
+  -add-stop-words killers,dimension,internal,aac,en,sub,webrip

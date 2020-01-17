@@ -387,6 +387,62 @@ func getOutDir(outFlag, fallbackOutFlag string) (string, error) {
 	return outDir, nil
 }
 
+func fNameSansExtension(fPath string) string {
+	ext := filepath.Ext(fPath)
+	name := fPath[0 : len(fPath)-len(ext)]
+	return filepath.Base(name)
+}
+
+// sortedIntersect has complexity: O(n * log(n)), a & b need to be sorted
+func sortedIntersect(a []string, b []string) []string {
+	set := make([]string, 0)
+
+	for _, el := range a {
+		idx := sort.SearchStrings(b, el)
+		if idx < len(b) && b[idx] == el {
+			set = append(set, el)
+		}
+	}
+
+	return set
+}
+
+func commonDirWords(moviePath string, movieList []string, stopWords []string) ([]string, error) {
+	name := fNameSansExtension(moviePath)
+	peerPaths := []string{name}
+	dir, err := filepath.Abs(filepath.Dir(moviePath))
+	if err != nil {
+		return []string{}, err
+	}
+
+	for _, p := range movieList {
+		if strings.HasPrefix(p, dir) {
+			peerPaths = append(peerPaths, fNameSansExtension(p))
+		}
+	}
+
+	originalQueryTokens := buildQueryTokens(peerPaths[0], stopWords)
+	common := sortUniq(originalQueryTokens)
+
+	for i := 1; i < len(peerPaths); i++ {
+		b := sortUniq(buildQueryTokens(peerPaths[i], stopWords))
+		common = sortedIntersect(common, b)
+		if len(common) == 0 {
+			return common, nil
+		}
+	}
+
+	// ensure original ordering
+	result := []string{}
+	for _, el := range originalQueryTokens {
+		if stringSliceContains(common, el) {
+			result = append(result, el)
+		}
+	}
+
+	return result, nil
+}
+
 func main() {
 	flag.Parse()
 
@@ -513,7 +569,13 @@ func main() {
 			continue
 		}
 
-		movie, err := selector.Handle(i, numMovies, moviePath, info)
+		common, err := commonDirWords(moviePath, movieList, stopWords)
+		if err != nil {
+			log.Println("Error getting common directory query tokens:", err)
+			break
+		}
+
+		movie, err := selector.Handle(i, numMovies, moviePath, common, info)
 		if err != nil {
 			if err.Error() == "skipped" {
 				continue
